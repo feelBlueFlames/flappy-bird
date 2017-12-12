@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>CANVAS</title>
+    <style>
+        #canvas {
+            border: 1px solid #000;
+        }
+    </style>
+    <script src="./sky.js"></script>
+    <script src="./land.js"></script>
+    <script src="./pipe.js"></script>
+    <script src="./bird.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="800" height="600"></canvas>
+</body>
+</html>
+<script>
+    var canvas = document.querySelector('#canvas');
+    var context = canvas.getContext('2d');
+
+//    加载图片
+    var skyImg = new Image();
+    skyImg.src = './img/sky.png';
+    var landImg = new Image();
+    landImg.src = './img/land.png';
+    var pipe1Img = new Image();
+    pipe1Img.src = './img/pipe1.png';
+    var pipe2Img = new Image();
+    pipe2Img.src = './img/pipe2.png';
+    var birdImg = new Image();
+    birdImg.src = './img/birds.png';
+    var imgArr = [skyImg,landImg,pipe1Img,pipe2Img,birdImg];
+    var count = 0;
+    imgArr.forEach(function(item){
+        item.onload = function () {
+            count++;
+            if(count == imgArr.length) {
+                start();
+            }
+        }
+    })
+
+    function start(){
+        var roleArr = [];
+        var bird = null;
+    //    创建对象
+        function creatRoles(){
+//            地图对象
+            for(var i = 0;i < 2;i++){
+               var sky = new Sky({
+                   x:i * skyImg.width,
+                   canvas:canvas,
+                   context:context,
+                   image:skyImg
+               });
+
+                roleArr.push(sky);
+            }
+
+//            陆地对象
+            for(var i = 0;i < 4;i++){
+                var land = new Land({
+                    x:i * landImg.width,
+                    y:canvas.height - landImg.height,
+                    canvas:canvas,
+                    context:context,
+                    image:landImg
+                });
+                roleArr.push(land);
+            }
+
+            //        管道对象
+            var gap = (canvas.width - 6 * pipe1Img.width)/5;
+            for(var i = 0;i < 6;i++){
+                var pipe = new Pipe({
+                    x:300 + i * (pipe1Img.width + gap),
+                    canvas:canvas,
+                    context:context,
+                    topImg:pipe2Img,
+                    bottomImg:pipe1Img,
+                    offsetY:landImg.height,
+                    gap:gap
+                });
+                roleArr.push(pipe);
+            }
+
+//            小鸟对象
+            bird = new Bidrs({
+                x:100,
+                y:150,
+                width:birdImg.width/3,
+                height:birdImg.height,
+                image:birdImg,
+                canvas:canvas,
+                context:context
+            });
+            roleArr.push(bird);
+        }
+
+        creatRoles();
+
+//    绘制对象
+        function action(){
+            context.clearRect(0,0,800,600);
+            context.beginPath();
+            roleArr.forEach(function(item){
+                item.draw();
+            });
+            var nowTime = new Date();
+            var time = nowTime - startTime;
+            var h = Math.floor(time/1000/60/60);
+            var m = Math.floor(time/1000/60)%60;
+            var s = Math.floor(time/1000)%60;
+            var str = '您坚持了' + h + '小时' + m + '分钟' + s + '秒';
+            console.log(str);
+            context.textAlign = 'right';
+            context.textBaseline = 'top';
+            context.font = '20px 微软雅黑';
+            context.fillText(str,800,0);
+
+//            如果小鸟掉到地上，那么游戏结束
+            if(bird.y >= canvas.height - landImg.height - 10) {
+                return;
+            }
+//            如果小鸟碰到柱子那么游戏结束
+            if(context.isPointInPath(bird.x,bird.y)){
+                return;
+            }
+            window.requestAnimationFrame(action);
+        }
+        action();
+        var startTime = new Date();
+        canvas.onclick = function(){
+           bird.v0 = -0.2;
+        }
+    }
+</script>
