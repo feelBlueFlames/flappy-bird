@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+  <head lang="en">
+    <meta charset="UTF-8" />
+    <title>CANVAS</title>
+    <style>
+      #canvas {
+        margin: 100px auto;
+        border: 1px solid #000;
+      }
+    </style>
+    <script src="./tools/sky.js"></script>
+    <script src="./tools/land.js"></script>
+    <script src="./tools/pipe.js"></script>
+    <script src="./tools/bird.js"></script>
+  </head>
+  <body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+  </body>
+</html>
+<script>
+  const canvas = document.querySelector('#canvas')
+  const ctx = canvas.getContext('2d')
+  let count = 0
+  const imgNames = ['sky', 'land', 'pipe1', 'pipe2', 'birds']
+  const imgSource = new Object()
+  imgNames.forEach((imgName, index, arr) => {
+    let img = new Image()
+    img.src = `./imgs/${imgName}.png`
+    img.onload = () => {
+      imgSource[imgName] = img
+      img = null
+      count++
+      if (count == arr.length) start()
+    }
+  })
+
+  function start() {
+    const roleArr = []
+    let bird = null
+    // 创建渐变
+    const gradient = ctx.createLinearGradient(0, 0, 500, 0)
+    gradient.addColorStop('0', 'magenta')
+    gradient.addColorStop('0.5', 'blue')
+    gradient.addColorStop('1.0', 'red')
+
+    //    创建对象
+    function creatRoles() {
+      //   地图对象
+      const speed = 2
+      const skyImg = imgSource.sky
+      for (var i = 0; i < 2; i++) {
+        var sky = new Sky({
+          x: i * skyImg.width,
+          canvas,
+          ctx,
+          image: skyImg,
+          speed
+        })
+        roleArr.push(sky)
+      }
+
+      //   陆地对象
+      const landImg = imgSource.land
+      for (var i = 0; i < 4; i++) {
+        var land = new Land({
+          x: i * landImg.width,
+          y: canvas.height - landImg.height,
+          canvas,
+          ctx,
+          image: landImg,
+          speed
+        })
+        roleArr.push(land)
+      }
+
+      //    管道对象
+      const pipe1Img = imgSource.pipe1
+      const pipe2Img = imgSource.pipe2
+      const pipeNum = 6
+      const gap = (canvas.width - pipeNum * pipe1Img.width) / 5
+      Array.from({ length: pipeNum }, (x, i) => i).forEach(item => {
+        const pipe = new Pipe({
+          x: 300 + item * (pipe1Img.width + gap),
+          canvas,
+          ctx,
+          topImg: pipe2Img,
+          bottomImg: pipe1Img,
+          offsetY: landImg.height,
+          gap,
+          speed
+        })
+        roleArr.push(pipe)
+      })
+
+      //   小鸟对象
+      const birdImg = imgSource.birds
+      bird = new Bidrs({
+        x: 100,
+        y: 150,
+        width: birdImg.width / 3,
+        height: birdImg.height,
+        image: birdImg,
+        canvas,
+        ctx
+      })
+      roleArr.push(bird)
+    }
+    //   绘制对象
+    creatRoles()
+
+    let startTime = new Date()
+    // 最大下落高度
+    const maxFallHeight = canvas.height - imgSource.land.height
+    function action() {
+      ctx.clearRect(0, 0, 800, 600)
+      ctx.beginPath()
+      roleArr.forEach(item => {
+        item.draw()
+      })
+      var nowTime = new Date()
+      var time = nowTime - startTime
+      var h = Math.floor(time / 1000 / 60 / 60)
+      var m = Math.floor(time / 1000 / 60) % 60
+      var s = Math.floor(time / 1000) % 60
+      var str = `您坚持了${h}小时${m}分钟${s}秒`
+      // console.log(str)
+      ctx.textAlign = 'right'
+      ctx.textBaseline = 'top'
+      ctx.font = '20px 微软雅黑'
+      // 用渐变填色
+      ctx.fillStyle = gradient
+      ctx.fillText(str, 500, 550)
+      //  如果小鸟掉到地上/碰到柱子那么游戏结束
+      if (bird.y >= maxFallHeight || ctx.isPointInPath(bird.x, bird.y)) {
+        if (window.confirm(`${str},是否重新开始游戏？`)) start()
+
+        return
+      }
+      window.requestAnimationFrame(action)
+    }
+    action()
+
+    canvas.onclick = () => {
+      bird.rise()
+    }
+  }
+</script>
